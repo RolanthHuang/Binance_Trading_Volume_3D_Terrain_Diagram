@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>市場地形檢視｜Gate × 成交金額</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="catalogue.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+<header class="topbar"><div><span class="eyebrow">MARKET TERRAIN / HISTORICAL RESEARCH</span><h1>市場地形檢視</h1><p>日期 × 日內時間 × 成交金額</p></div><div class="top-actions"><span class="snapshot">資料截止 2026/10/01 08:00 台灣時間</span><button id="exportImage">儲存目前圖像</button><button id="helpToggle" aria-expanded="false">讀圖說明</button></div></header>
+<section id="help" class="help" hidden>
+  <p><strong>地形越低，該期成交金額越低。</strong>紅圈是研究 Gate 失敗；藍色是低於／等於固定 P1；黃色實心點是 Gate 通過但成交金額低量。白色菱形是目前範圍最低成交額。</p>
+  <p>成交量為目標柱結束後的實際值，Gate 使用下注前可知資料。此圖是事後對照，不能將未來成交量直接拿來做當時的開盤決策。Gate 通過不是實際接單，也不是抗干預證明。</p>
+  <p>高頻使用固定512／2,560根、每64根更新；15m／1H保留各自Ultra每日更新設定。Gate覆蓋2025/04/02起，之前顯示「未評估」。P1採完整30個月固定基準，不隨觀看範圍重設。</p>
+  <p>長範圍會改用概覽格：高度為格內中位數，另保留最低點及失敗密度。點選概覽格可放大至逐根；局部連線僅表示相近的失敗事件，不是已驗證的因果關係。同幣不同週期共用資料，不能視為獨立風險分散。</p>
+</section>
+<main>
+<aside class="controls">
+  <section><h2>比較市場 <small>最多3個</small></h2><div id="selectedMarkets" class="selected-markets"></div><label for="marketAdd">加入另一個市場</label><div class="input-row"><select id="marketAdd"></select><button id="addMarket">加入</button></div></section>
+  <section><h2>時間範圍 <small>台灣時間</small></h2><div class="quick-buttons"><button data-days="7">7天</button><button data-days="30">30天</button><button data-range="gate">全部Gate期間</button><button data-range="all">全部資料</button></div><label for="monthSelect">指定月份</label><select id="monthSelect"></select><div class="two-fields"><label>開始日期<input id="dateStart" type="date" min="2024-04-01" max="2026-10-01"></label><label>結束日期<input id="dateEnd" type="date" min="2024-04-01" max="2026-10-01"></label></div><button id="applyRange" class="primary wide">顯示這段時間</button></section>
+  <section><h2>高度與標記</h2><label for="zMeasure">Z軸數值</label><select id="zMeasure"><option value="quote">每局成交金額（USDT）</option><option value="perMinute">每分鐘成交金額（USDT/min）</option><option value="relative">相對各市場P1（倍）</option><option value="trades">每局成交筆數（筆）</option></select><label class="check"><input id="logHeight" type="checkbox" checked>對數高度：看清低量谷底</label><label class="check"><input id="showFail" type="checkbox" checked><span class="legend-ring"></span>Gate失敗</label><label class="check"><input id="showLow" type="checkbox" checked><span class="legend-blue"></span>成交金額 ≤ P1</label><label class="check"><input id="showPassLow" type="checkbox" checked><span class="legend-yellow"></span>Gate通過，但低量</label><label class="check"><input id="showUnknown" type="checkbox">未評估Gate區段</label><label for="causeFilter">紅圈失敗分項</label><select id="causeFilter"><option value="all">所有Gate失敗</option><option value="low">只看失敗且低量</option></select></section>
+  <section><h2>局部連線</h2><label class="check"><input id="showLinks" type="checkbox">顯示相近失敗事件</label><div class="two-fields"><label>日期差（天）<input id="linkDays" type="number" min="0" max="7" value="1"></label><label>時刻差（分鐘）<input id="linkMinutes" type="number" min="1" max="180" value="10"></label></div><label class="check"><input id="sameCause" type="checkbox" checked>至少有一個相同失敗分項</label><p id="clusterStatus" class="muted">在選定區段內觀察；可連接不同市場。</p></section>
+  <details><summary>60市場候選比較</summary><p class="muted">全部Gate評估期的研究結果，依兩側可報率排序；不代表正式推薦或抗干預能力。</p><div id="ranking" class="ranking"></div></details>
+</aside>
+<div class="workspace">
+  <div class="viewbar"><div class="mode-buttons" role="group" aria-label="顯示方式"><button data-mode="terrain" aria-pressed="true">地形</button><button data-mode="grid" aria-pressed="false">格點／線框</button><button data-mode="slice" aria-pressed="false">日期切片</button></div><div class="view-actions"><button id="topView">俯視</button><button id="resetView">重設視角</button></div></div>
+  <div id="stage" class="stage" aria-label="市場成交金額三維地形，可旋轉、縮放及點選"><div id="loading" class="loading"><div class="loading-dot"></div><span>正在準備市場資料…</span></div><div id="hover" class="hover" hidden></div><div id="stageHint" class="stage-hint">拖曳旋轉 · 滾輪縮放 · 點選查看原始值</div><div class="axis-caption"><span>X 日期</span><span>Y 日內時刻</span><span id="zCaption">Z 成交金額</span></div></div>
+  <div class="slice-controls"><label for="sliceSlider">日期切片 <strong id="sliceDate">—</strong></label><div class="slider-row"><button id="prevSlice" aria-label="前一天">←</button><input id="sliceSlider" type="range" min="0" max="29" value="0"><button id="nextSlice" aria-label="後一天">→</button></div></div>
+  <div id="status" class="status" role="status" aria-live="polite">載入中</div><div id="metrics" class="metrics"></div>
+  <section id="detail" class="detail"><div class="detail-top"><h2>點選一根K線或概覽格，查成交量與Gate原因</h2><button id="zoomCell" hidden>放大這個區段</button></div><div id="detailContent" class="detail-content">每個標記都能回到對應時間及失敗分項。空白／未評估不當成Gate失敗。</div></section>
+  <footer>研究回放 · 原Gate與交付包保留 · 不自動下單或插拔市場</footer>
+</div>
+</main>
+<div id="toast" class="toast" hidden role="alert"></div>
+</body>
+</html>
